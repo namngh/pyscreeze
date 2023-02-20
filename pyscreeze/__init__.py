@@ -530,9 +530,9 @@ def linux_command_exist_error(command):
 def linux_command_call(command, tmpFilename, command_params=None):
     if command == "flameshot":
         if command_params == None:
-            command_params = ['screen', '-n', '1', '-c']
+            command_params = ['screen', '-n', '0']
         
-        subprocess.call(['flameshot'] + command_params + [tmpFilename])
+        subprocess.call(['flameshot'] + command_params + ['-p', tmpFilename])
     elif command == "maim":
         if command_params == None:
             command_params = ['-i', '$(xdotool getactivewindow)']
