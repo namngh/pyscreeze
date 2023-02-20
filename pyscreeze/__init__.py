@@ -88,6 +88,21 @@ except OSError as ex:
     else:
         raise
 
+def linux_command_exist(command):
+    try:
+        if sys.platform not in ('java', 'darwin', 'win32'):
+            whichProc = subprocess.Popen(
+                ['which', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return whichProc.wait() == 0
+    except OSError as ex:
+        if ex.errno == errno.ENOENT:
+            # if there is no "which" program to find scrot, then assume there
+            # is no scrot.
+
+            return False
+        else:
+            raise
+
 
 if sys.platform == 'win32':
     from ctypes import windll
@@ -504,19 +519,45 @@ def _screenshot_osx(imageFilename=None, region=None):
         os.unlink(tmpFilename)
     return im
 
+def linux_command_exist_error(command):
+    if command == "flameshot":
+        return '"flameshot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install flameshot'
+    elif command == "maim":
+        return '"maim" must be installed to use screenshot functions in Linux. Run: sudo apt-get install maim'
+    else:
+        return '"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot'
 
-def _screenshot_linux(imageFilename=None, region=None):
+def linux_command_call(command, tmpFilename, command_params=None):
+    if command == "flameshot":
+        if command_params == None:
+            command_params = ['screen', '-n', '1', '-c']
+        
+        subprocess.call(['flameshot'] + command_params + [tmpFilename])
+    elif command == "maim":
+        if command_params == None:
+            command_params = ['-i', '$(xdotool getactivewindow)']
+        
+        subprocess.call(['maim'] + command_params + [tmpFilename])
+    else:
+        if command_params == None:
+            command_params = ['-z', '-u']
+        
+        subprocess.call(['scrot'] + command_params + [tmpFilename])
+
+def _screenshot_linux(imageFilename=None, region=None, command="scrot", command_params=None):
     """
     TODO
     """
-    if not scrotExists:
-        raise NotImplementedError('"scrot" must be installed to use screenshot functions in Linux. Run: sudo apt-get install scrot')
+    exist = linux_command_exist(command)
+    if not exist:
+        raise NotImplementedError(linux_command_exist_error(command))
     if imageFilename is None:
         tmpFilename = '.screenshot%s.png' % (datetime.datetime.now().strftime('%Y-%m%d_%H-%M-%S-%f'))
     else:
         tmpFilename = imageFilename
-    if scrotExists:
-        subprocess.call(['scrot', '-z', tmpFilename])
+    if exist:
+        linux_command_call(command, tmpFilename, command_params)
+        # subprocess.call(['scrot', '-z', tmpFilename])
         im = Image.open(tmpFilename)
 
         if region is not None:
